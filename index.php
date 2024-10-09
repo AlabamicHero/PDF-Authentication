@@ -9,6 +9,6 @@ $serverBaseUrl = 'http://34.172.241.179';
 $redirectUrl = $serverBaseUrl . $requestedPath;
 
 // Send the redirect header
-header("Location: $redirectUrl", true, 301);
+header("Location: $redirectUrl", true, 302);
 exit();
 ?>
