@@ -3,7 +3,7 @@
 $requestedPath = $_SERVER['REQUEST_URI'];
 
 // Define the base URL of your server
-$serverBaseUrl = 'http://35.184.251.245';
+$serverBaseUrl = 'http://34.31.213.189';
 
 // Build the full URL to redirect to
 $redirectUrl = $serverBaseUrl . $requestedPath;
